@@ -8,6 +8,7 @@ This repository contains various projects and examples for the Raspberry Pi Pico
 - **pico2w_led_test** - LED testing and external LED control
 - **pico2w_temp_sensor** - Temperature sensor projects
 - **pico2w-motion-sensor** - Motion sensor projects
+- **pic2w-servo-example** - Servo control example
 
 ## Getting Started
 
