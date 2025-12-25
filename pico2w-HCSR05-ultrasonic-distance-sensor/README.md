@@ -43,6 +43,8 @@ TRIG        ───────→ GPIO16 (Pin 21)
 ECHO        ───────→ GPIO17 (Pin 22)
 ```
 
+**⚠️ IMPORTANT:**: Purposefully skipped connecting `OUT` pin on SR-05 as we don't need it. It's mainly use to start sensor in "mode 2" - which usually is not the case for us.
+
 ## Wiring Diagram
 
 ```
