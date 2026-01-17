@@ -7,9 +7,9 @@ Update pins to match your wiring before deploying to the Pico.
 STBY_PIN = 12 # GPIO12 (Pin 18)
 
 # Left motor (Channel A) - default values taken from existing motor.py
-LEFT_PWM = 15 # GPIO15 (Pin 22)
-LEFT_IN1 = 14 # GPIO14 (Pin 20)
-LEFT_IN2 = 13 # GPIO13 (Pin 19)
+LEFT_PWM = 15 # GPIO15 (Pin 20)
+LEFT_IN1 = 14 # GPIO14 (Pin 19)
+LEFT_IN2 = 13 # GPIO13 (Pin 17)
 
 # Right motor (Channel B) - choose free GPIOs (adjust if needed)
 RIGHT_PWM = 18 # GPIO18 (Pin 24)

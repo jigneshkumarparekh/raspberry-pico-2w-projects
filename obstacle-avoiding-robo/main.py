@@ -7,23 +7,29 @@ pins section in sync with your hardware.
 """
 
 from machine import Pin, PWM
-import time
+import utime
+from utime import sleep, sleep_us
 
-# --- pins (same defaults as test.py) ---
+
+# --- MOTOR PINS ---
 STBY_PIN = 12
 LEFT_PWM = 15
 LEFT_IN1 = 14
 LEFT_IN2 = 13
-RIGHT_PWM = 18
-RIGHT_IN1 = 19
-RIGHT_IN2 = 20
+
+# NOT USING RIGHT MOTOR
+# RIGHT_PWM = 18
+# RIGHT_IN1 = 19
+# RIGHT_IN2 = 20
+
+# HSR04
 TRIG_PIN = 16
 ECHO_PIN = 17
 
 # behavior
 THRESHOLD_CM = 30
-CRUISE_SPEED = 70
-REVERSE_MS = 350
+CRUISE_SPEED = 80
+REVERSE_MS = 550
 LOOP_DELAY_MS = 60
 
 # PWM
@@ -33,9 +39,9 @@ MAX_DUTY = 65535
 
 def _log(tag, msg=""):
     try:
-        ts = time.ticks_ms()
+        ts = utime.ticks_ms()
     except Exception:
-        ts = int(time.time() * 1000)
+        ts = int(utime.time() * 1000)
     print("[{}ms] {}: {}".format(ts, tag, msg))
 
 
@@ -96,34 +102,53 @@ class HCSR04:
         self.trigger.value(0)
 
     def distance_cm(self):
-        self.trigger.value(0)
-        time.sleep_us(2)
-        self.trigger.value(1)
-        time.sleep_us(10)
-        self.trigger.value(0)
+        # Trigger pulse
+        self.trigger.low()
+        sleep_us(200)
+        self.trigger.high()
+        sleep_us(10)
+        self.trigger.low()
 
-        timeout = time.ticks_us() + 50000
+        # Wait for echo HIGH
+        start_wait = utime.ticks_us()
         while self.echo.value() == 0:
-            if time.ticks_us() > timeout:
-                _log("HCSR04.distance_cm", "timeout waiting for echo high")
+            if utime.ticks_diff(utime.ticks_us(), start_wait) > 30000:
                 return None
-        start = time.ticks_us()
+
+        start = utime.ticks_us()
+
+        # Wait for echo LOW
         while self.echo.value() == 1:
-            if time.ticks_us() > timeout:
-                _log("HCSR04.distance_cm", "timeout waiting for echo low")
+            if utime.ticks_diff(utime.ticks_us(), start) > 30000:
                 return None
-        end = time.ticks_us()
-        duration = end - start
+
+        end = utime.ticks_us()
+
+        duration = utime.ticks_diff(end, start)
         distance = (duration * 0.0343) / 2
-        _log("HCSR04.distance_cm", "distance_cm=%.2f" % distance)
+        if distance > 300:
+            return None
         return distance
+
 
 
 # initialize
 hbridge = HBridge(STBY_PIN)
 left = Motor(LEFT_PWM, LEFT_IN1, LEFT_IN2)
-right = Motor(RIGHT_PWM, RIGHT_IN1, RIGHT_IN2)
+# right = Motor(RIGHT_PWM, RIGHT_IN1, RIGHT_IN2)
 sensor = HCSR04(TRIG_PIN, ECHO_PIN)
+led = Pin("LED", Pin.OUT)
+
+
+def blink_led(times=3, delay=0.5):
+    """Blink the onboard LED as a startup indicator."""
+    _log("blink_led", "starting with %d blinks" % times)
+    for _ in range(times):
+        led.on()
+        sleep(delay)
+        led.off()
+        sleep(delay)
+    _log("blink_led", "finished")
 
 
 def forward(speed=None):
@@ -143,35 +168,37 @@ def reverse(duration_ms, speed=60):
     _log("reverse", "duration_ms=%s speed=%s" % (duration_ms, speed))
     left.reverse(speed)
     # right.reverse(speed)
-    time.sleep_ms(duration_ms)
+    utime.sleep_ms(duration_ms)
     stop()
 
 
 def simplified_run(total_ms=3000):
     _log("simplified_run", "start total_ms=%s" % total_ms)
-    start = time.ticks_ms()
+    blink_led(times=3, delay=0.5)
+    start = utime.ticks_ms()
     forward(CRUISE_SPEED)
     try:
-        while time.ticks_diff(time.ticks_ms(), start) < total_ms:
+        while utime.ticks_diff(utime.ticks_ms(), start) < total_ms:
             dist = sensor.distance_cm()
             if dist is None:
                 # sensor timed out — just continue
-                time.sleep_ms(LOOP_DELAY_MS)
+                utime.sleep_ms(LOOP_DELAY_MS)
                 continue
             _log("simplified_run", "measured=%.2fcm" % dist)
             if dist < THRESHOLD_CM:
                 _log("simplified_run", "obstacle detected %.2fcm — stopping and reversing" % dist)
                 stop()
-                time.sleep_ms(100)
-                reverse(REVERSE_MS, speed=60)
-            time.sleep_ms(LOOP_DELAY_MS)
+                utime.sleep_ms(100)
+                reverse(REVERSE_MS, CRUISE_SPEED)
+            utime.sleep_ms(LOOP_DELAY_MS)
     except KeyboardInterrupt:
         _log("simplified_run", "keyboard interrupt")
     finally:
         stop()
+        led.off()
         hbridge.disable()
         _log("simplified_run", "finished")
 
 
 if __name__ == "__main__":
-    simplified_run(total_ms=10000)
+    simplified_run(total_ms=20000)
