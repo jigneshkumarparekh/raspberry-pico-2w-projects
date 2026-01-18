@@ -25,6 +25,7 @@ A simple obstacle-avoiding robot project using a Raspberry Pi Pico microcontroll
 The following GPIO pins are used on the Raspberry Pi Pico. Ensure your wiring matches these assignments.
 
 ### Motor Control (TB6612FNG H-Bridge)
+
 - **GPIO 12 (STBY_PIN)**: Connected to STBY (Standby) pin on TB6612FNG. Enables/disables the H-Bridge.
 - **GPIO 15 (LEFT_PWM)**: Connected to PWMA (PWM input for motor A) on TB6612FNG. Controls speed of the left motor.
 - **GPIO 14 (LEFT_IN1)**: Connected to AIN1 on TB6612FNG. Direction control for left motor.
@@ -33,13 +34,17 @@ The following GPIO pins are used on the Raspberry Pi Pico. Ensure your wiring ma
 **Note**: Only the left motor is implemented in the code. For a full robot, you can add a right motor using similar pins (commented out in the code).
 
 ### Ultrasonic Sensor (HC-SR04)
+
 - **GPIO 16 (TRIG_PIN)**: Connected to Trig (Trigger) pin on HC-SR04. Sends ultrasonic pulses.
 - **GPIO 17 (ECHO_PIN)**: Connected to Echo pin on HC-SR04. Receives echo signals.
 
 ### Other
+
 - **Onboard LED**: GPIO "LED" (built-in Pico LED). Used for startup blinking and status indication.
 
 ### Wiring Diagram (Text-Based)
+
+Here is the link to wiring diagram: https://miro.com/app/board/uXjVGOnAl5s=/?share_link_id=999963932204
 
 ```
 Raspberry Pi Pico          TB6612FNG H-Bridge          HC-SR04 Sensor          DC Motor (Left)
