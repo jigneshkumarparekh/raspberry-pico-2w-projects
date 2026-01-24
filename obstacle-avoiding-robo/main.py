@@ -27,9 +27,9 @@ TRIG_PIN = 16
 ECHO_PIN = 17
 
 # behavior
-THRESHOLD_CM = 30
-CRUISE_SPEED = 80
-REVERSE_MS = 550
+THRESHOLD_CM = 50
+CRUISE_SPEED = 60
+REVERSE_MS = 1000
 LOOP_DELAY_MS = 60
 
 # PWM
@@ -188,7 +188,7 @@ def simplified_run(total_ms=3000):
             if dist < THRESHOLD_CM:
                 _log("simplified_run", "obstacle detected %.2fcm — stopping and reversing" % dist)
                 stop()
-                utime.sleep_ms(100)
+                utime.sleep_ms(1000)
                 reverse(REVERSE_MS, CRUISE_SPEED)
             utime.sleep_ms(LOOP_DELAY_MS)
     except KeyboardInterrupt:
