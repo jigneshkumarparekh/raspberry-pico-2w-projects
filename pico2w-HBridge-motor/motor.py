@@ -6,10 +6,10 @@ from utime import sleep
 # ============================================================================
 
 # Motor Control Pins
-STBY_PIN = 17        # Standby pin (enable/disable driver)
-PWM_PIN = 16         # PWM speed control
+STBY_PIN = 12        # Standby pin (enable/disable driver)
+PWM_PIN = 15         # PWM speed control
 IN1_PIN = 14         # Direction control 1 (forward)
-IN2_PIN = 15         # Direction control 2 (reverse)
+IN2_PIN = 13         # Direction control 2 (reverse)
 
 # PWM Configuration
 PWM_FREQ = 10000     # 10 kHz PWM frequency (TB6612FNG supports up to 100 kHz)
