@@ -43,6 +43,10 @@ TURN_SPEED = 55  # Speed during turn
 PWM_FREQ = 10000
 MAX_DUTY = 65535
 
+# Turn validation constants
+TURN_VALIDATION_PAUSE_MS = 100  # Pause for stable sensor reading after turn
+TURN_MAX_RETRIES = 2  # Max retry attempts for single turn direction
+
 
 def _log(tag, msg=""):
     try:
@@ -130,6 +134,8 @@ class HCSR04:
         self.trigger = Pin(trigger_pin, Pin.OUT)
         self.echo = Pin(echo_pin, Pin.IN)
         self.trigger.value(0)
+        self.reading_buffer = []  # Moving-average filter buffer
+        self.buffer_size = 3
 
     def distance_cm(self):
         # Trigger pulse
@@ -158,7 +164,15 @@ class HCSR04:
         distance = (duration * 0.0343) / 2
         if distance > 300:
             return None
-        return distance
+        
+        # Add to moving-average buffer
+        self.reading_buffer.append(distance)
+        if len(self.reading_buffer) > self.buffer_size:
+            self.reading_buffer.pop(0)  # Keep only last 3 readings
+        
+        # Return average of buffered readings
+        avg_distance = sum(self.reading_buffer) / len(self.reading_buffer)
+        return avg_distance
 
 
 # initialize
@@ -292,6 +306,30 @@ def turn_right(duration_ms=None, speed=None):
     stop()
 
 
+def turn_with_validation(side='left', max_retries=2):
+    """Turn until obstacle no longer directly ahead, with retry logic."""
+    retry_count = 0
+    
+    while retry_count < max_retries:
+        if side == 'left':
+            turn_left(TURN_MS, TURN_SPEED)
+        else:
+            turn_right(TURN_MS, TURN_SPEED)
+        
+        utime.sleep_ms(100)  # Brief pause for stable reading
+        dist = sensor.distance_cm()
+        
+        if dist is not None and dist >= THRESHOLD_CM:
+            _log("turn_with_validation", "%s turn successful: dist=%.2fcm" % (side, dist))
+            return True
+        
+        retry_count += 1
+        _log("turn_with_validation", "turn incomplete, retrying: attempt %d/%d" % (retry_count, max_retries))
+    
+    _log("turn_with_validation", "%s turn exhausted retries" % side)
+    return False
+
+
 def simplified_run(total_ms=3000):
     _log("simplified_run", "start total_ms=%s" % total_ms)
     blink_led(times=3, delay=0.5)
@@ -316,15 +354,21 @@ def simplified_run(total_ms=3000):
                 _log("simplified_run", "adaptive slowdown: dist=%.2fcm speed=%d%%" % (dist, adaptive_speed))
                 forward(adaptive_speed, ramp=True)
             elif dist < THRESHOLD_CM:
-                _log("simplified_run", "obstacle detected %.2fcm — stop, reverse, turn, resume" % dist)
+                _log("simplified_run", "obstacle detected %.2fcm — stop, reverse, turn with validation, resume" % dist)
                 left.ramp_stop(DECEL_RAMP_MS)
                 right.ramp_stop(DECEL_RAMP_MS)
                 utime.sleep_ms(100)
                 reverse_until_safe(REVERSE_SPEED)
-                if turn_alternate:
-                    turn_right(TURN_MS, TURN_SPEED)
-                else:
-                    turn_left(TURN_MS, TURN_SPEED)
+                
+                # Try primary turn direction with validation
+                primary_side = 'right' if turn_alternate else 'left'
+                success = turn_with_validation(side=primary_side, max_retries=2)
+                
+                if not success:
+                    _log("simplified_run", "primary turn direction failed, trying opposite")
+                    secondary_side = 'left' if turn_alternate else 'right'
+                    turn_with_validation(side=secondary_side, max_retries=1)
+                
                 turn_alternate = not turn_alternate
                 forward(CRUISE_SPEED, ramp=True)
             elif dist >= adaptive_threshold:
