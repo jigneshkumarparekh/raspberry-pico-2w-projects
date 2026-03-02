@@ -1,122 +1,119 @@
-# Obstacle-Avoiding Robot with Raspberry Pi Pico
+# Obstacle-Avoiding Robo Car (Pico 2 W + TB6612FNG)
 
-A simple obstacle-avoiding robot project using a Raspberry Pi Pico microcontroller, TB6612FNG H-Bridge motor driver, and HC-SR04 ultrasonic sensor. The robot moves forward at a cruise speed, detects obstacles within a threshold distance, reverses briefly, and resumes forward motion.
+An obstacle-avoiding robo car using Raspberry Pi Pico 2 W, TB6612FNG dual H-Bridge, and an HC-SR04 ultrasonic sensor. Two ready-to-flash variants are included:
+
+- Single motor: Reverse-until-safe behavior using the left motor only. See [single_motor_main.py](single_motor_main.py).
+- Dual motor: Reverse, then turn-in-place with simple validation before resuming. See [dual_motor_main.py](dual_motor_main.py).
+
+Both variants are MicroPython-based and blink the onboard LED while running.
 
 ## Features
 
-- **Obstacle Detection**: Uses ultrasonic sensor to measure distance and avoid collisions.
-- **Motor Control**: Single motor setup (left motor) with PWM speed control via TB6612FNG H-Bridge.
-- **Simple Behavior**: Forward movement with automatic reverse on obstacle detection.
-- **LED Indicator**: Onboard LED blinks on startup and can be used for status.
-- **MicroPython-Based**: Runs on Raspberry Pi Pico with MicroPython firmware.
+- Obstacle detection: HC-SR04 distance measurement with adaptive slowdown near obstacles.
+- Smooth PWM control: 0–100% speed mapped to PWM at 10 kHz; ramped speed changes.
+- Two variants: Single-motor reverse-only and dual-motor reverse+turn with retries.
+- Safe defaults: Reverse safety timeout; driver disabled on stop.
 
-## Hardware Requirements
+## Hardware
 
-- **Raspberry Pi Pico** (with MicroPython installed)
-- **TB6612FNG H-Bridge Motor Driver**
-- **DC Motor** (e.g., 6V-12V geared motor for the left wheel)
-- **HC-SR04 Ultrasonic Sensor**
-- **Power Supply**: Suitable for motors (e.g., 6V-12V battery pack) and Pico (5V via USB or regulator)
-- **Wires and Breadboard** for connections
-- **Optional**: Wheels, chassis, and additional components for full robot assembly
+- Board: Raspberry Pi Pico 2 W (MicroPython).
+- Motor driver: TB6612FNG (dual channel A/B) with STBY standby pin.
+- Motors: 1× DC motor (single) or 2× DC motors (dual).
+- Sensor: HC-SR04 ultrasonic.
+- Power: VM (motors/battery), VCC (logic). Common ground required between Pico, driver, and sensor.
 
-## Pin Mappings
+## Wiring
 
-The following GPIO pins are used on the Raspberry Pi Pico. Ensure your wiring matches these assignments.
+- Diagrams
+  - Single-motor: [Obstacle_avoiding_robo_car_wiring_single_motor.png](Obstacle_avoiding_robo_car_wiring_single_motor.png)
+  - Dual-motor: [Obstacle_avoiding_robo_car_wiring_dual_motor.png](Obstacle_avoiding_robo_car_wiring_dual_motor.png)
+- Reference: Existing Miro wiring board link (kept for additional clarity): https://miro.com/app/board/uXjVGOnAl5s=/?share_link_id=999963932204
+- Notes
+  - Tie grounds: Pico GND, TB6612FNG GND, sensor GND, and battery negative.
+  - TB6612FNG STBY must be driven high to enable outputs.
+  - If HC-SR04 runs at 5 V, ensure the Echo signal to the Pico is 3.3 V safe (divider/level shifter).
+  - Motor polarity may need swapping to match “forward” with the code.
 
-### Motor Control (TB6612FNG H-Bridge)
+## Pin Map (GPIO)
 
-- **GPIO 12 (STBY_PIN)**: Connected to STBY (Standby) pin on TB6612FNG. Enables/disables the H-Bridge.
-- **GPIO 15 (LEFT_PWM)**: Connected to PWMA (PWM input for motor A) on TB6612FNG. Controls speed of the left motor.
-- **GPIO 14 (LEFT_IN1)**: Connected to AIN1 on TB6612FNG. Direction control for left motor.
-- **GPIO 13 (LEFT_IN2)**: Connected to AIN2 on TB6612FNG. Direction control for left motor.
+- Common
+  - STBY: 12
+  - TRIG: 16
+  - ECHO: 17
+  - LED: onboard (“LED”)
+- Single motor (left / channel A) — [single_motor_main.py](single_motor_main.py)
+  - LEFT_PWM: 15
+  - LEFT_IN1: 14
+  - LEFT_IN2: 13
+- Dual motor (adds right / channel B) — [dual_motor_main.py](dual_motor_main.py)
+  - RIGHT_PWM: 8
+  - RIGHT_IN1: 7
+  - RIGHT_IN2: 6
 
-**Note**: Only the left motor is implemented in the code. For a full robot, you can add a right motor using similar pins (commented out in the code).
+## Quick Start
 
-### Ultrasonic Sensor (HC-SR04)
+1) Flash MicroPython on Pico 2 W and wire according to the diagram for your variant.
+2) Copy the chosen file to the Pico and name it `main.py` to auto-run on power.
+   - Single motor: [single_motor_main.py](single_motor_main.py)
+   - Dual motor: [dual_motor_main.py](dual_motor_main.py)
+3) Power on; the onboard LED will blink as the script runs.
 
-- **GPIO 16 (TRIG_PIN)**: Connected to Trig (Trigger) pin on HC-SR04. Sends ultrasonic pulses.
-- **GPIO 17 (ECHO_PIN)**: Connected to Echo pin on HC-SR04. Receives echo signals.
+## Setup / Flashing
 
-### Other
+- Install MicroPython on the Pico 2 W (via Thonny or UF2 drag-and-drop).
+- Choose your variant and rename it to `main.py` on the Pico filesystem to auto-run on boot.
+- On boot, the onboard LED blinks as the script runs.
 
-- **Onboard LED**: GPIO "LED" (built-in Pico LED). Used for startup blinking and status indication.
+## How to Run
 
-### Wiring Diagram (Text-Based)
+- Default demo: Each script calls `simplified_run(20000)` to run ~20 seconds, then stop and disable the driver.
+- Continuous operation (recommended):
+  - Increase the time limit in the final `simplified_run(...)` call (e.g., use a large value for multi-minute runs), or
+  - Edit the script to loop indefinitely before flashing as `main.py`.
+- Expected behavior
+  - Single motor: Forward cruise, adaptive slowdown near obstacles, reverse-until-safe, then resume.
+  - Dual motor: Stop → reverse-until-safe → turn-in-place (alternating direction with validation/retry) → resume.
 
-Here is the link to wiring diagram: https://miro.com/app/board/uXjVGOnAl5s=/?share_link_id=999963932204
+## Tuning / Calibration
 
-```
-Raspberry Pi Pico          TB6612FNG H-Bridge          HC-SR04 Sensor          DC Motor (Left)
------------------          -------------------          --------------          -------------
-GPIO 12 (STBY)  ---------> STBY                      Trig Pin     ---------> GPIO 16 (TRIG)
-GPIO 15 (PWM)   ---------> PWMA                      Echo Pin     ---------> GPIO 17 (ECHO)
-GPIO 14 (IN1)   ---------> AIN1                      VCC          ---------> 5V (Pico/External)
-GPIO 13 (IN2)   ---------> AIN2                      GND          ---------> GND
-GND            ---------> GND                       Motor +      ---------> Motor Terminal +
-5V             ---------> VM (Motor Power)          Motor -      ---------> Motor Terminal -
-                          AO1/AO2 (Outputs) ---------> Left Motor Wires
-
-Power Connections:
-- Pico: USB power or 5V regulator.
-- TB6612FNG: VM connected to motor battery (6V-12V), VCC to 5V.
-- HC-SR04: Powered from Pico's 5V/GND.
-- Motors: Ensure polarity matches direction (swap wires if needed).
-```
-
-**Important**: Double-check the TB6612FNG datasheet for pinouts. The H-Bridge requires proper power sequencing (VM before VCC). Use decoupling capacitors if motors cause noise.
-
-## Software Requirements
-
-- **MicroPython**: Install MicroPython firmware on your Raspberry Pi Pico.
-  - Download from [micropython.org](https://micropython.org/download/rp2-pico/).
-  - Flash using Thonny or another tool.
-- **Thonny IDE** (recommended for uploading code and testing).
-
-## Installation and Setup
-
-1. **Flash MicroPython**: Boot your Pico in bootloader mode (hold BOOTSEL while plugging in) and flash the UF2 file.
-2. **Upload Code**: Copy `main.py` (or other scripts) to the Pico using Thonny or `ampy`.
-3. **Wire Hardware**: Follow the pin mappings above.
-4. **Power On**: Connect power to the Pico and motors.
-5. **Run**: The robot will blink the LED 3 times on startup, then begin moving forward.
-
-## Usage
-
-- **Default Run**: Execute `main.py` for a 20-second test run.
-- **Customization**:
-  - Adjust `THRESHOLD_CM` for obstacle detection distance (default: 30cm).
-  - Change `CRUISE_SPEED` for motor speed (0-100, default: 80).
-  - Modify `REVERSE_MS` for reverse duration (default: 550ms).
-- **Testing**: Use `test.py` for individual component tests.
-
-## Code Structure
-
-- `main.py`: Main script with simplified obstacle-avoiding logic.
-- `main_original.py`: Original version (backup).
-- `drive_and_avoid.py`: Core driving and avoidance functions.
-- `pins.py`: Pin definitions (if separated).
-- `test.py`: Test scripts for motors and sensors.
-
-## Behavior Details
-
-- **Startup**: LED blinks 3 times.
-- **Movement**: Moves forward continuously.
-- **Obstacle Detection**: If distance < 30cm, stops, reverses for 550ms, then resumes forward.
-- **Timeout**: Runs for 20 seconds total, then stops and disables H-Bridge.
-- **Error Handling**: Handles sensor timeouts gracefully.
+- Shared (both scripts)
+  - THRESHOLD_CM: Start avoidance below this distance (single: ~30; dual: ~50 by default).
+  - CRUISE_SPEED: Forward speed (0–100%).
+  - REVERSE_SPEED: Reverse speed (0–100%).
+  - MAX_REVERSE_MS: Safety cap for maximum reverse duration.
+  - Ramps and cadence: RAMP_TIME_MS, DECEL_RAMP_MS, RESUME_RAMP_MS, ADAPTIVE_THRESHOLD_MULT, LOOP_DELAY_MS.
+- Dual-only (in [dual_motor_main.py](dual_motor_main.py))
+  - Turning: TURN_MS, TURN_SPEED, TURN_RAMP_MS, TURN_SETTLE_MS.
+  - Validation: TURN_MAX_RETRIES, TURN_VALIDATION_PAUSE_MS.
+  - Cruise hysteresis: CRUISE_HYSTERESIS_FACTOR reduces re-ramping chatter near target speed.
 
 ## Troubleshooting
 
-- **Motor Not Moving**: Check H-Bridge power (VM), STBY pin, and PWM/direction pins.
-- **Sensor Not Detecting**: Verify Trig/Echo wiring and power. Test with `test.py`.
-- **Code Upload Issues**: Ensure MicroPython is flashed and use Thonny for serial connection.
-- **Power Issues**: Motors may draw high current; use adequate battery and check for voltage drops.
+- Motors don’t move:
+  - Ensure STBY is high; verify VM battery and common ground; confirm PWM pin mapping.
+- Jerky/weak motion:
+  - Check battery current capability and wiring; the default 10 kHz PWM is fine for most drivers; verify mechanical drag.
+- Wrong direction:
+  - Swap motor leads or swap IN1/IN2 wiring on the corresponding channel.
+- Sensor reads 0 or times out:
+  - Verify TRIG and ECHO wiring and sensor power; make Echo 3.3 V safe when powering HC-SR04 from 5 V; avoid very close ranges (<2–3 cm).
+- Random resets:
+  - Power brownouts under stall; use a capable battery, add bulk and ceramic decoupling near the TB6612FNG.
 
-## Contributing
+## Safety & Power
 
-Feel free to modify and improve! Add right motor support, PID control, or additional sensors.
+- Separate VM (motors) and VCC (logic) per TB6612FNG guidelines; always share ground.
+- Add bulk and ceramic decoupling near the motor driver.
+- Respect motor stall current and thermal limits on the driver.
 
-## License
+## Files
 
-This project is open-source. Use at your own risk.
+- Single-motor variant: [single_motor_main.py](single_motor_main.py)
+- Dual-motor variant: [dual_motor_main.py](dual_motor_main.py)
+- Wiring diagrams:
+  - [Obstacle_avoiding_robo_car_wiring_single_motor.png](Obstacle_avoiding_robo_car_wiring_single_motor.png)
+  - [Obstacle_avoiding_robo_car_wiring_dual_motor.png](Obstacle_avoiding_robo_car_wiring_dual_motor.png)
+
+Notes
+
+- Removed references to non-existent files (separate main.py source, main_original.py, drive_and_avoid.py, pins.py, test.py) and aligned docs to the two actual variant scripts.

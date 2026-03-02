@@ -47,6 +47,12 @@ MAX_DUTY = 65535
 TURN_VALIDATION_PAUSE_MS = 100  # Pause for stable sensor reading after turn
 TURN_MAX_RETRIES = 2  # Max retry attempts for single turn direction
 
+# Smoothness tuning
+PRE_RAMP_DELAY_MS = 20  # Reduced from 50ms for snappier transitions
+TURN_SETTLE_MS = 80  # Brief settle after stop before turning
+TURN_RAMP_MS = 100  # Shorter ramp for turns (more responsive)
+CRUISE_HYSTERESIS_FACTOR = 0.8  # Only re-ramp when duty below 80% of cruise
+
 
 def _log(tag, msg=""):
     try:
@@ -113,6 +119,43 @@ class Motor:
         self.pwm.duty_u16(self.current_duty)
 
 
+def _smoothstep(t):
+    """Ease-in/ease-out: slow start and slow end for smoother perceived motion."""
+    t = max(0, min(1, t))
+    return t * t * (3 - 2 * t)
+
+
+def ramp_both(left_motor, right_motor, target_speed, ramp_time_ms, ease=True):
+    """
+    Ramp both motors in sync to avoid drift. Uses ease-in/ease-out for smoother
+    acceleration/deceleration. Both motors step together each interval.
+    """
+    target_speed = max(0, min(100, target_speed))
+    left_target = int((target_speed / 100) * MAX_DUTY)
+    right_target = left_target
+    left_start = left_motor.current_duty
+    right_start = right_motor.current_duty
+
+    steps = max(1, ramp_time_ms // 20)
+    step_time = ramp_time_ms // steps
+
+    for i in range(steps):
+        t = (i + 1) / steps
+        t_eased = _smoothstep(t) if ease else t
+        left_duty = left_start + int((left_target - left_start) * t_eased)
+        right_duty = right_start + int((right_target - right_start) * t_eased)
+        left_motor.pwm.duty_u16(left_duty)
+        right_motor.pwm.duty_u16(right_duty)
+        left_motor.current_duty = left_duty
+        right_motor.current_duty = right_duty
+        utime.sleep_ms(step_time)
+
+    left_motor.current_duty = left_target
+    right_motor.current_duty = right_target
+    left_motor.pwm.duty_u16(left_target)
+    right_motor.pwm.duty_u16(right_target)
+
+
 class HBridge:
     def __init__(self, stby_pin):
         _log("HBridge.__init__", "stby=%s" % stby_pin)
@@ -135,7 +178,19 @@ class HCSR04:
         self.echo = Pin(echo_pin, Pin.IN)
         self.trigger.value(0)
         self.reading_buffer = []  # Moving-average filter buffer
-        self.buffer_size = 3
+        self.buffer_size = 5  # Larger buffer for smoother readings
+        self.last_valid_cm = None  # Use when sensor returns None (with timeout)
+        self.last_valid_time_ms = 0
+        self.NONE_TIMEOUT_MS = 500  # Max age of last_valid before treating as unknown
+
+    def _fallback_distance(self):
+        """Return last valid distance if recent, else None."""
+        if self.last_valid_cm is None:
+            return None
+        age = utime.ticks_diff(utime.ticks_ms(), self.last_valid_time_ms)
+        if age <= self.NONE_TIMEOUT_MS:
+            return self.last_valid_cm
+        return None
 
     def distance_cm(self):
         # Trigger pulse
@@ -149,29 +204,31 @@ class HCSR04:
         start_wait = utime.ticks_us()
         while self.echo.value() == 0:
             if utime.ticks_diff(utime.ticks_us(), start_wait) > 30000:
-                return None
+                return self._fallback_distance()
 
         start = utime.ticks_us()
 
         # Wait for echo LOW
         while self.echo.value() == 1:
             if utime.ticks_diff(utime.ticks_us(), start) > 30000:
-                return None
+                return self._fallback_distance()
 
         end = utime.ticks_us()
 
         duration = utime.ticks_diff(end, start)
         distance = (duration * 0.0343) / 2
         if distance > 300:
-            return None
+            return self._fallback_distance()
         
         # Add to moving-average buffer
         self.reading_buffer.append(distance)
         if len(self.reading_buffer) > self.buffer_size:
-            self.reading_buffer.pop(0)  # Keep only last 3 readings
-        
+            self.reading_buffer.pop(0)
+
         # Return average of buffered readings
         avg_distance = sum(self.reading_buffer) / len(self.reading_buffer)
+        self.last_valid_cm = avg_distance
+        self.last_valid_time_ms = utime.ticks_ms()
         return avg_distance
 
 
@@ -203,13 +260,11 @@ def forward(speed=None, ramp=True):
         left.in2.off()
         right.in1.on()
         right.in2.off()
-        left.ramp_speed(s, RAMP_TIME_MS)
-        right.ramp_speed(s, RAMP_TIME_MS)
+        ramp_both(left, right, s, RAMP_TIME_MS)
     else:
         left.forward(0)
         right.forward(0)
-        left.ramp_speed(s, RESUME_RAMP_MS)
-        right.ramp_speed(s, RESUME_RAMP_MS)
+        ramp_both(left, right, s, RESUME_RAMP_MS)
 
 
 def stop():
@@ -222,14 +277,12 @@ def reverse(duration_ms, speed=None):
     if speed is None:
         speed = REVERSE_SPEED
     _log("reverse", "duration_ms=%s speed=%s" % (duration_ms, speed))
-    utime.sleep_ms(50)
+    utime.sleep_ms(PRE_RAMP_DELAY_MS)
     left.reverse(0)
     right.reverse(0)
-    left.ramp_speed(speed, RAMP_TIME_MS)
-    right.ramp_speed(speed, RAMP_TIME_MS)
+    ramp_both(left, right, speed, RAMP_TIME_MS)
     utime.sleep_ms(duration_ms)
-    left.ramp_speed(0, RAMP_TIME_MS)
-    right.ramp_speed(0, RAMP_TIME_MS)
+    ramp_both(left, right, 0, DECEL_RAMP_MS)
     stop()
 
 
@@ -242,11 +295,10 @@ def reverse_until_safe(speed=None):
         speed = REVERSE_SPEED
     _log("reverse_until_safe", "speed=%s" % speed)
 
-    utime.sleep_ms(50)
+    utime.sleep_ms(PRE_RAMP_DELAY_MS)
     left.reverse(0)
     right.reverse(0)
-    left.ramp_speed(speed, RAMP_TIME_MS)
-    right.ramp_speed(speed, RAMP_TIME_MS)
+    ramp_both(left, right, speed, RAMP_TIME_MS)
 
     reverse_start = utime.ticks_ms()
     final_dist = None
@@ -267,11 +319,16 @@ def reverse_until_safe(speed=None):
 
         utime.sleep_ms(LOOP_DELAY_MS)
 
-    left.ramp_speed(0, RAMP_TIME_MS)
-    right.ramp_speed(0, RAMP_TIME_MS)
+    ramp_both(left, right, 0, DECEL_RAMP_MS)
     stop()
 
     return final_dist
+
+
+def ramp_both_stop(ramp_time_ms=DECEL_RAMP_MS):
+    """Synchronized ramp-down of both motors to stop."""
+    ramp_both(left, right, 0, ramp_time_ms)
+    stop()
 
 
 def turn_left(duration_ms=None, speed=None):
@@ -279,14 +336,12 @@ def turn_left(duration_ms=None, speed=None):
     dur = TURN_MS if duration_ms is None else duration_ms
     spd = TURN_SPEED if speed is None else speed
     _log("turn_left", "duration_ms=%s speed=%s" % (dur, spd))
-    utime.sleep_ms(50)
+    utime.sleep_ms(PRE_RAMP_DELAY_MS)
     left.reverse(0)
     right.forward(0)
-    left.ramp_speed(spd, RAMP_TIME_MS)
-    right.ramp_speed(spd, RAMP_TIME_MS)
+    ramp_both(left, right, spd, TURN_RAMP_MS)
     utime.sleep_ms(dur)
-    left.ramp_speed(0, RAMP_TIME_MS)
-    right.ramp_speed(0, RAMP_TIME_MS)
+    ramp_both(left, right, 0, TURN_RAMP_MS)
     stop()
 
 
@@ -295,14 +350,12 @@ def turn_right(duration_ms=None, speed=None):
     dur = TURN_MS if duration_ms is None else duration_ms
     spd = TURN_SPEED if speed is None else speed
     _log("turn_right", "duration_ms=%s speed=%s" % (dur, spd))
-    utime.sleep_ms(50)
+    utime.sleep_ms(PRE_RAMP_DELAY_MS)
     left.forward(0)
     right.reverse(0)
-    left.ramp_speed(spd, RAMP_TIME_MS)
-    right.ramp_speed(spd, RAMP_TIME_MS)
+    ramp_both(left, right, spd, TURN_RAMP_MS)
     utime.sleep_ms(dur)
-    left.ramp_speed(0, RAMP_TIME_MS)
-    right.ramp_speed(0, RAMP_TIME_MS)
+    ramp_both(left, right, 0, TURN_RAMP_MS)
     stop()
 
 
@@ -348,16 +401,16 @@ def simplified_run(total_ms=3000):
             if dist < adaptive_threshold and dist >= THRESHOLD_CM:
                 distance_range = adaptive_threshold - THRESHOLD_CM
                 distance_from_threshold = dist - THRESHOLD_CM
-                speed_factor = distance_from_threshold / distance_range
+                t = distance_from_threshold / distance_range
+                speed_factor = _smoothstep(t)  # Gentler curve for gradual slowdown
                 adaptive_speed = int(CRUISE_SPEED * speed_factor)
                 adaptive_speed = max(20, min(CRUISE_SPEED, adaptive_speed))
                 _log("simplified_run", "adaptive slowdown: dist=%.2fcm speed=%d%%" % (dist, adaptive_speed))
                 forward(adaptive_speed, ramp=True)
             elif dist < THRESHOLD_CM:
                 _log("simplified_run", "obstacle detected %.2fcm — stop, reverse, turn with validation, resume" % dist)
-                left.ramp_stop(DECEL_RAMP_MS)
-                right.ramp_stop(DECEL_RAMP_MS)
-                utime.sleep_ms(100)
+                ramp_both_stop(DECEL_RAMP_MS)
+                utime.sleep_ms(TURN_SETTLE_MS)
                 reverse_until_safe(REVERSE_SPEED)
                 
                 # Try primary turn direction with validation
@@ -372,7 +425,7 @@ def simplified_run(total_ms=3000):
                 turn_alternate = not turn_alternate
                 forward(CRUISE_SPEED, ramp=True)
             elif dist >= adaptive_threshold:
-                cruise_duty = int((CRUISE_SPEED / 100) * MAX_DUTY * 0.9)
+                cruise_duty = int((CRUISE_SPEED / 100) * MAX_DUTY * CRUISE_HYSTERESIS_FACTOR)
                 if left.current_duty < cruise_duty or right.current_duty < cruise_duty:
                     forward(CRUISE_SPEED, ramp=True)
             utime.sleep_ms(LOOP_DELAY_MS)
