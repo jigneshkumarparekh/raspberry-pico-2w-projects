@@ -53,6 +53,15 @@ TURN_SETTLE_MS = 80  # Brief settle after stop before turning
 TURN_RAMP_MS = 100  # Shorter ramp for turns (more responsive)
 CRUISE_HYSTERESIS_FACTOR = 0.8  # Only re-ramp when duty below 80% of cruise
 
+# Peek-and-choose constants
+PEEK_MS = 220
+PEEK_SPEED = TURN_SPEED
+PEEK_SAMPLES = 3
+PEEK_SETTLE_MS = TURN_VALIDATION_PAUSE_MS
+RECENTER_MS = PEEK_MS
+PEEK_TIE_EPS = 5
+ESCAPE_TURN_MS = 1000  # Tune for ~180° on your chassis
+
 
 def _log(tag, msg=""):
     try:
@@ -232,6 +241,19 @@ class HCSR04:
         return avg_distance
 
 
+def read_distance_avg(count, delay_ms):
+    """Collect up to 'count' valid distance readings, averaging them."""
+    readings = []
+    for _ in range(count):
+        dist = sensor.distance_cm()
+        if dist is not None:
+            readings.append(dist)
+        utime.sleep_ms(delay_ms)
+    if readings:
+        return sum(readings) / len(readings)
+    return None
+
+
 # initialize
 hbridge = HBridge(STBY_PIN)
 left = Motor(LEFT_PWM, LEFT_IN1, LEFT_IN2)
@@ -383,6 +405,59 @@ def turn_with_validation(side='left', max_retries=2):
     return False
 
 
+def peek(side):
+    """Micro-rotate to 'side', measure distance, then recenter."""
+    _log("peek", "starting side=%s" % side)
+    if side == 'left':
+        turn_left(PEEK_MS, PEEK_SPEED)
+    else:
+        turn_right(PEEK_MS, PEEK_SPEED)
+    
+    utime.sleep_ms(PEEK_SETTLE_MS)
+    dist = read_distance_avg(PEEK_SAMPLES, LOOP_DELAY_MS)
+    
+    # Recenter with mirrored turn
+    if side == 'left':
+        turn_right(RECENTER_MS, PEEK_SPEED)
+    else:
+        turn_left(RECENTER_MS, PEEK_SPEED)
+    
+    _log("peek", "side=%s dist=%.2fcm" % (side, dist if dist is not None else -1))
+    return dist
+
+
+def decide_turn_side(turn_alternate):
+    """Peek both sides, choose the clearer one."""
+    left_cm = peek('left')
+    right_cm = peek('right')
+    
+    left_blocked = left_cm is None or left_cm < THRESHOLD_CM
+    right_blocked = right_cm is None or right_cm < THRESHOLD_CM
+    
+    if left_blocked and right_blocked:
+        _log("decide_turn_side", "both blocked: left=%.2f right=%.2f" % (left_cm or -1, right_cm or -1))
+        return 'blocked'
+    
+    if left_blocked:
+        _log("decide_turn_side", "left blocked, choosing right: left=%.2f right=%.2f" % (left_cm or -1, right_cm or -1))
+        return 'right'
+    if right_blocked:
+        _log("decide_turn_side", "right blocked, choosing left: left=%.2f right=%.2f" % (left_cm or -1, right_cm or -1))
+        return 'left'
+    
+    # Both clear, choose larger distance
+    diff = abs(left_cm - right_cm)
+    if diff > PEEK_TIE_EPS:
+        chosen = 'left' if left_cm > right_cm else 'right'
+        _log("decide_turn_side", "clearer side: left=%.2f right=%.2f chosen=%s" % (left_cm, right_cm, chosen))
+        return chosen
+    else:
+        # Tie, use turn_alternate
+        chosen = 'left' if not turn_alternate else 'right'
+        _log("decide_turn_side", "tie (diff=%.2f < %d), using alternate: left=%.2f right=%.2f chosen=%s" % (diff, PEEK_TIE_EPS, left_cm, right_cm, chosen))
+        return chosen
+
+
 def simplified_run(total_ms=3000):
     _log("simplified_run", "start total_ms=%s" % total_ms)
     blink_led(times=3, delay=0.5)
@@ -408,19 +483,35 @@ def simplified_run(total_ms=3000):
                 _log("simplified_run", "adaptive slowdown: dist=%.2fcm speed=%d%%" % (dist, adaptive_speed))
                 forward(adaptive_speed, ramp=True)
             elif dist < THRESHOLD_CM:
-                _log("simplified_run", "obstacle detected %.2fcm — stop, reverse, turn with validation, resume" % dist)
+                _log("simplified_run", "obstacle detected %.2fcm — stop, reverse, peek-and-choose, resume" % dist)
                 ramp_both_stop(DECEL_RAMP_MS)
                 utime.sleep_ms(TURN_SETTLE_MS)
                 reverse_until_safe(REVERSE_SPEED)
                 
-                # Try primary turn direction with validation
-                primary_side = 'right' if turn_alternate else 'left'
-                success = turn_with_validation(side=primary_side, max_retries=2)
-                
-                if not success:
-                    _log("simplified_run", "primary turn direction failed, trying opposite")
-                    secondary_side = 'left' if turn_alternate else 'right'
-                    turn_with_validation(side=secondary_side, max_retries=1)
+                choice = decide_turn_side(turn_alternate)
+                if choice in ['left', 'right']:
+                    success = turn_with_validation(side=choice, max_retries=2)
+                    if not success:
+                        _log("simplified_run", "chosen side failed, trying opposite")
+                        opposite = 'left' if choice == 'right' else 'right'
+                        turn_with_validation(side=opposite, max_retries=1)
+                elif choice == 'blocked':
+                    _log("simplified_run", "both sides blocked, performing 180° escape")
+                    escape_side = 'left' if not turn_alternate else 'right'
+                    if escape_side == 'left':
+                        turn_left(ESCAPE_TURN_MS, TURN_SPEED)
+                    else:
+                        turn_right(ESCAPE_TURN_MS, TURN_SPEED)
+                    # After escape, check once
+                    utime.sleep_ms(TURN_VALIDATION_PAUSE_MS)
+                    post_escape_dist = sensor.distance_cm()
+                    if post_escape_dist is None or post_escape_dist < THRESHOLD_CM:
+                        _log("simplified_run", "escape failed, reversing again")
+                        reverse_until_safe(REVERSE_SPEED)
+                        # Retry with new peeks
+                        choice = decide_turn_side(turn_alternate)
+                        if choice in ['left', 'right']:
+                            turn_with_validation(side=choice, max_retries=2)
                 
                 turn_alternate = not turn_alternate
                 forward(CRUISE_SPEED, ramp=True)
