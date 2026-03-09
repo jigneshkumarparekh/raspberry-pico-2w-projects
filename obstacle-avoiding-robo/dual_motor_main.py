@@ -530,4 +530,4 @@ def simplified_run(total_ms=3000):
 
 
 if __name__ == "__main__":
-    simplified_run(total_ms=20000)
+    simplified_run(total_ms=60000)
