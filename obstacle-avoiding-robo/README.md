@@ -7,6 +7,8 @@ An obstacle-avoiding robo car using Raspberry Pi Pico 2 W, TB6612FNG dual H-Brid
 
 Both variants are MicroPython-based and blink the onboard LED while running.
 
+Here is the link to the video: https://youtube.com/shorts/muM9jOU0rGQ?feature=share
+
 ## Features
 
 - Obstacle detection: HC-SR04 distance measurement with adaptive slowdown near obstacles.
