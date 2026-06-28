@@ -65,3 +65,6 @@ env/
 # Project specific
 .env
 .env.local
+
+# History
+**/.history/
