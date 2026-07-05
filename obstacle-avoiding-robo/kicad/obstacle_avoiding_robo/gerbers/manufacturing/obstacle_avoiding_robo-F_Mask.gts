@@ -1,12 +1,12 @@
 %TF.GenerationSoftware,KiCad,Pcbnew,10.0.4*%
-%TF.CreationDate,2026-07-03T15:04:44-07:00*%
+%TF.CreationDate,2026-07-04T13:39:08-07:00*%
 %TF.ProjectId,obstacle_avoiding_robo,6f627374-6163-46c6-955f-61766f696469,rev?*%
 %TF.SameCoordinates,Original*%
 %TF.FileFunction,Soldermask,Top*%
 %TF.FilePolarity,Negative*%
 %FSLAX46Y46*%
 G04 Gerber Fmt 4.6, Leading zero omitted, Abs format (unit mm)*
-G04 Created by KiCad (PCBNEW 10.0.4) date 2026-07-03 15:04:44*
+G04 Created by KiCad (PCBNEW 10.0.4) date 2026-07-04 13:39:08*
 %MOMM*%
 %LPD*%
 G01*
@@ -100,11 +100,11 @@ X65739999Y-3270000D03*
 %TD*%
 D10*
 %TO.C,J8*%
-X50000000Y-55000000D03*
+X64200000Y-36000000D03*
 D11*
-X50000000Y-57540000D03*
-X50000000Y-60080000D03*
-X50000000Y-62620000D03*
+X66740000Y-36000000D03*
+X69280000Y-36000000D03*
+X71820000Y-36000000D03*
 %TD*%
 D10*
 %TO.C,J6*%
