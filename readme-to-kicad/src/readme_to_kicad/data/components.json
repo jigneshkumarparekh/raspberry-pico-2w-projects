@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "parts": {
+    "pico_2w": {
+      "aliases": ["raspberry pi pico 2w", "raspberry pico 2w", "pico 2w", "pico", "pico w"],
+      "reference_prefix": "U",
+      "value": "Raspberry Pi Pico 2W",
+      "symbol_library_id": "ReadmeToKicad:pico_2w",
+      "pins": [
+        {"id": "gpio16", "number": "21", "name": "GPIO16", "aliases": ["gp16", "gpio16"], "schemes": ["gpio", "label"], "electrical_type": "bidirectional", "side": "right"},
+        {"id": "gpio17", "number": "22", "name": "GPIO17", "aliases": ["gp17", "gpio17"], "schemes": ["gpio", "label"], "electrical_type": "bidirectional", "side": "right"},
+        {"id": "3v3", "number": "36", "name": "3V3", "aliases": ["3v3", "3.3v", "+3v3"], "schemes": ["label"], "electrical_type": "power_out", "side": "right"},
+        {"id": "vbus", "number": "40", "name": "VBUS", "aliases": ["vbus", "5v"], "schemes": ["label"], "electrical_type": "power_out", "side": "right"},
+        {"id": "vsys", "number": "39", "name": "VSYS", "aliases": ["vsys"], "schemes": ["label"], "electrical_type": "power_in", "side": "right"},
+        {"id": "gnd", "number": "38", "name": "GND", "aliases": ["gnd", "ground"], "schemes": ["label"], "electrical_type": "power_out", "side": "right"}
+      ]
+    },
+    "hc_sr04": {
+      "aliases": ["hc-sr04", "hc sr04", "hcsr04", "ultrasonic sensor", "ultrasonic sound"],
+      "reference_prefix": "U",
+      "value": "HC-SR04",
+      "symbol_library_id": "ReadmeToKicad:hc_sr04",
+      "pins": [
+        {"id": "vcc", "number": "1", "name": "VCC", "aliases": ["vcc", "power"], "schemes": ["label"], "electrical_type": "power_in", "side": "left"},
+        {"id": "trig", "number": "2", "name": "TRIG", "aliases": ["trig", "trigger"], "schemes": ["signal", "label"], "electrical_type": "input", "side": "left"},
+        {"id": "echo", "number": "3", "name": "ECHO", "aliases": ["echo"], "schemes": ["signal", "label"], "electrical_type": "output", "side": "left"},
+        {"id": "gnd", "number": "4", "name": "GND", "aliases": ["gnd", "ground"], "schemes": ["label"], "electrical_type": "power_in", "side": "left"}
+      ]
+    },
+    "led": {
+      "aliases": ["led", "light emitting diode"],
+      "reference_prefix": "D",
+      "value": "LED",
+      "symbol_library_id": "ReadmeToKicad:led",
+      "pins": [
+        {"id": "a", "number": "1", "name": "A", "aliases": ["a", "anode", "+"], "schemes": ["label"], "electrical_type": "passive", "side": "left"},
+        {"id": "k", "number": "2", "name": "K", "aliases": ["k", "cathode", "-"], "schemes": ["label"], "electrical_type": "passive", "side": "right"}
+      ]
+    },
+    "resistor": {
+      "aliases": ["resistor", "res", "220 ohm resistor", "220r"],
+      "reference_prefix": "R",
+      "value": "R",
+      "symbol_library_id": "ReadmeToKicad:resistor",
+      "pins": [
+        {"id": "1", "number": "1", "name": "1", "aliases": ["1", "pin1"], "schemes": ["physical", "label"], "electrical_type": "passive", "side": "left"},
+        {"id": "2", "number": "2", "name": "2", "aliases": ["2", "pin2"], "schemes": ["physical", "label"], "electrical_type": "passive", "side": "right"}
+      ]
+    },
+    "buzzer": {
+      "aliases": ["buzzer", "piezo buzzer"],
+      "reference_prefix": "BZ",
+      "value": "Buzzer",
+      "symbol_library_id": "ReadmeToKicad:buzzer",
+      "pins": [
+        {"id": "plus", "number": "1", "name": "+", "aliases": ["+", "positive", "vcc"], "schemes": ["label"], "electrical_type": "passive", "side": "left"},
+        {"id": "minus", "number": "2", "name": "-", "aliases": ["-", "negative", "gnd"], "schemes": ["label"], "electrical_type": "passive", "side": "right"}
+      ]
+    },
+    "servo": {
+      "aliases": ["servo", "servo motor", "sg90"],
+      "reference_prefix": "M",
+      "value": "Servo",
+      "symbol_library_id": "ReadmeToKicad:servo",
+      "pins": [
+        {"id": "signal", "number": "1", "name": "SIGNAL", "aliases": ["signal", "sig", "pwm"], "schemes": ["signal", "label"], "electrical_type": "input", "side": "left"},
+        {"id": "vcc", "number": "2", "name": "VCC", "aliases": ["vcc", "5v", "power"], "schemes": ["label"], "electrical_type": "power_in", "side": "left"},
+        {"id": "gnd", "number": "3", "name": "GND", "aliases": ["gnd", "ground"], "schemes": ["label"], "electrical_type": "power_in", "side": "left"}
+      ]
+    }
+  }
+}
