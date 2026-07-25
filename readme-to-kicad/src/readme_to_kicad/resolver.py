@@ -18,6 +18,7 @@ from .registry import Registry, normalize
 POWER_NETS = {
     "3v3": "3V3",
     "3 3v": "3V3",
+    "3v3 out": "3V3",
     "5v": "5V",
     "vbus": "VBUS",
     "vsys": "VSYS",

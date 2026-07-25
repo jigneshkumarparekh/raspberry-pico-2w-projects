@@ -1,11 +1,22 @@
 from __future__ import annotations
 
 import uuid
+from collections import defaultdict
 from dataclasses import dataclass
 
-from .models import Circuit, ComponentInstance, PinRef, RegistryPart, RegistryPin
+from .models import Circuit, ComponentInstance, Connection, PinRef, RegistryPart, RegistryPin
 from .registry import Registry
 from .sexpr import SExpr, atom, document
+
+
+PIN_PITCH = 5.08
+PIN_LENGTH = 5.08
+SYMBOL_WIDTH = 33.02
+MIN_SYMBOL_HEIGHT = 20.32
+SYMBOL_VERTICAL_PADDING = 10.16
+COLUMN_GAP = 76.2
+ROW_GAP = 20.32
+POWER_NETS = {"GND", "3V3", "5V", "VBUS", "VSYS", "VM", "VCC"}
 
 
 @dataclass(frozen=True)
@@ -19,8 +30,16 @@ class PlacedPin:
     direction: int
 
 
+@dataclass(frozen=True)
+class SymbolMetrics:
+    width: float
+    height: float
+    left_pins: tuple[RegistryPin, ...]
+    right_pins: tuple[RegistryPin, ...]
+
+
 def generate_schematic(circuit: Circuit, registry: Registry) -> str:
-    placements = _component_placements(circuit)
+    placements = _component_placements(circuit, registry)
     root_uuid = _stable_uuid(circuit.project_name, "root")
     lib_symbols = [atom("lib_symbols")]
     for component in circuit.components:
@@ -35,12 +54,34 @@ def generate_schematic(circuit: Circuit, registry: Registry) -> str:
         lib_symbols,
     ]
 
+    net_counts = _net_counts(circuit.connections)
+    emitted_label_stubs: set[tuple[str, str, str]] = set()
     for connection_index, connection in enumerate(circuit.connections, start=1):
-        for pin_ref in (connection.from_pin, connection.to_pin):
-            placed_pin = _placed_pin(pin_ref, circuit, registry, placements)
-            label_x = placed_pin.x + (7.62 if placed_pin.direction == 0 else -7.62)
-            body.append(_wire(placed_pin.x, placed_pin.y, label_x, placed_pin.y, connection.net_name, connection_index))
-            body.append(_label(connection.net_name, label_x, placed_pin.y, placed_pin.direction, pin_ref))
+        if _should_draw_direct_wire(connection, circuit, registry, placements, net_counts):
+            left = _placed_pin(connection.from_pin, circuit, registry, placements)
+            right = _placed_pin(connection.to_pin, circuit, registry, placements)
+            body.extend(_direct_wire(left, right, connection.net_name, connection_index))
+        else:
+            for pin_ref in (connection.from_pin, connection.to_pin):
+                stub_key = (pin_ref.component_id, pin_ref.normalized_pin_id, connection.net_name)
+                if stub_key in emitted_label_stubs:
+                    continue
+                emitted_label_stubs.add(stub_key)
+                placed_pin = _placed_pin(pin_ref, circuit, registry, placements)
+                label_x = placed_pin.x + (7.62 if placed_pin.direction == 0 else -7.62)
+                body.append(
+                    _wire(
+                        placed_pin.x,
+                        placed_pin.y,
+                        label_x,
+                        placed_pin.y,
+                        connection.net_name,
+                        connection_index,
+                        pin_ref.component_id,
+                        pin_ref.normalized_pin_id,
+                    )
+                )
+                body.append(_label(connection.net_name, label_x, placed_pin.y, placed_pin.direction, pin_ref))
 
     used_pins = {
         (pin_ref.component_id, pin_ref.normalized_pin_id)
@@ -71,21 +112,26 @@ def generate_schematic(circuit: Circuit, registry: Registry) -> str:
     return document(body)
 
 
-def _component_placements(circuit: Circuit) -> dict[str, tuple[float, float]]:
+def _component_placements(circuit: Circuit, registry: Registry) -> dict[str, tuple[float, float]]:
     placements: dict[str, tuple[float, float]] = {}
-    controllers = [c for c in circuit.components if "pico" in c.registry_part_id]
-    others = [c for c in circuit.components if c not in controllers]
-    y = 76.2
-    for index, component in enumerate(controllers):
-        placements[component.id] = (50.8, y + index * 45.72)
-    for index, component in enumerate(others):
-        placements[component.id] = (127.0, y + index * 35.56)
+    columns: dict[str, list[ComponentInstance]] = {"left": [], "middle": [], "right": []}
+    for component in circuit.components:
+        columns[_placement_column(component)].append(component)
+
+    x_positions = {"left": 50.8, "middle": 50.8 + COLUMN_GAP, "right": 50.8 + COLUMN_GAP * 2}
+    for column, components in columns.items():
+        y_cursor = 50.8
+        for component in components:
+            height = _symbol_metrics(registry.parts[component.registry_part_id]).height
+            placements[component.id] = (x_positions[column], y_cursor + height / 2)
+            y_cursor += height + ROW_GAP
+    if len(circuit.components) == 2:
+        _align_two_component_signal_pins(circuit, registry, placements)
     return placements
 
 
 def _lib_symbol(part: RegistryPart) -> SExpr:
-    height = max(15.24, len(part.pins) * 5.08 + 5.08)
-    width = 25.4
+    metrics = _symbol_metrics(part)
     symbol_body: list[SExpr] = [
         atom("symbol"),
         part.symbol_library_id,
@@ -93,12 +139,12 @@ def _lib_symbol(part: RegistryPart) -> SExpr:
         [atom("exclude_from_sim"), atom("no")],
         [atom("in_bom"), atom("yes")],
         [atom("on_board"), atom("yes")],
-        _property("Reference", part.reference_prefix, 0, -height / 2 - 5.08, 0),
-        _property("Value", part.value, 0, height / 2 + 5.08, 0),
-        [atom("symbol"), f"{_symbol_name(part)}_0_1", _rectangle(width, height)],
+        _property("Reference", part.reference_prefix, 0, -metrics.height / 2 - 5.08, 0),
+        _property("Value", part.value, 0, metrics.height / 2 + 5.08, 0),
+        [atom("symbol"), f"{_symbol_name(part)}_0_1", _rectangle(metrics.width, metrics.height)],
     ]
-    for index, pin in enumerate(part.pins):
-        symbol_body[-1].append(_symbol_pin(pin, index, part.pins, width))
+    for pin in part.pins:
+        symbol_body[-1].append(_symbol_pin(pin, part, metrics))
     return symbol_body
 
 
@@ -112,20 +158,20 @@ def _rectangle(width: float, height: float) -> SExpr:
     ]
 
 
-def _symbol_pin(pin: RegistryPin, index: int, pins: list[RegistryPin], width: float) -> SExpr:
-    y = _pin_y(index, len(pins))
+def _symbol_pin(pin: RegistryPin, part: RegistryPart, metrics: SymbolMetrics) -> SExpr:
+    y = _pin_local_y(pin, part, metrics)
     if pin.side == "left":
-        x = -width / 2 - 5.08
+        x = -metrics.width / 2 - PIN_LENGTH
         rotation = 0
     else:
-        x = width / 2 + 5.08
+        x = metrics.width / 2 + PIN_LENGTH
         rotation = 180
     return [
         atom("pin"),
         atom(_pin_electrical_type(pin.electrical_type)),
         atom("line"),
         [atom("at"), x, y, rotation],
-        [atom("length"), 5.08],
+        [atom("length"), PIN_LENGTH],
         [atom("name"), pin.name, [atom("effects"), [atom("font"), [atom("size"), 1.27, 1.27]]]],
         [atom("number"), pin.number, [atom("effects"), [atom("font"), [atom("size"), 1.27, 1.27]]]],
     ]
@@ -186,12 +232,20 @@ def _property(name: str, value: str, x: float, y: float, rotation: int) -> SExpr
     ]
 
 
-def _wire(x1: float, y1: float, x2: float, y2: float, net_name: str, index: int) -> SExpr:
+def _wire(
+    x1: float,
+    y1: float,
+    x2: float,
+    y2: float,
+    net_name: str,
+    index: int,
+    *uuid_parts: object,
+) -> SExpr:
     return [
         atom("wire"),
         [atom("pts"), [atom("xy"), x1, y1], [atom("xy"), x2, y2]],
         [atom("stroke"), [atom("width"), 0], [atom("type"), atom("default")]],
-        [atom("uuid"), _stable_uuid("wire", net_name, index, x1, y1, x2, y2)],
+        [atom("uuid"), _stable_uuid("wire", net_name, index, x1, y1, x2, y2, *uuid_parts)],
     ]
 
 
@@ -238,17 +292,101 @@ def _pin_endpoint(
     pin: RegistryPin,
     placements: dict[str, tuple[float, float]],
 ) -> tuple[float, float, int]:
-    pin_index = part.pins.index(pin)
-    symbol_width = 25.4
+    metrics = _symbol_metrics(part)
     cx, cy = placements[component.id]
-    y = cy - _pin_y(pin_index, len(part.pins))
+    y = cy - _pin_local_y(pin, part, metrics)
     if pin.side == "left":
-        return cx - symbol_width / 2 - 5.08, y, 180
-    return cx + symbol_width / 2 + 5.08, y, 0
+        return cx - metrics.width / 2 - PIN_LENGTH, y, 180
+    return cx + metrics.width / 2 + PIN_LENGTH, y, 0
 
 
 def _pin_y(index: int, total: int) -> float:
-    return (index - (total - 1) / 2) * 5.08
+    return ((total - 1) / 2 - index) * PIN_PITCH
+
+
+def _symbol_metrics(part: RegistryPart) -> SymbolMetrics:
+    left_pins = tuple(pin for pin in part.pins if pin.side == "left")
+    right_pins = tuple(pin for pin in part.pins if pin.side != "left")
+    max_side_count = max(len(left_pins), len(right_pins), 1)
+    height = max(MIN_SYMBOL_HEIGHT, (max_side_count - 1) * PIN_PITCH + SYMBOL_VERTICAL_PADDING)
+    return SymbolMetrics(SYMBOL_WIDTH, height, left_pins, right_pins)
+
+
+def _pin_local_y(pin: RegistryPin, part: RegistryPart, metrics: SymbolMetrics) -> float:
+    side_pins = metrics.left_pins if pin.side == "left" else metrics.right_pins
+    index = side_pins.index(pin)
+    if pin.side != "left":
+        index = len(side_pins) - 1 - index
+    return _pin_y(index, len(side_pins))
+
+
+def _placement_column(component: ComponentInstance) -> str:
+    part_id = component.registry_part_id
+    if "pico" in part_id:
+        return "left"
+    if part_id in {"left_dc_motor", "right_dc_motor", "battery_pack"}:
+        return "right"
+    return "middle"
+
+
+def _net_counts(connections: list[Connection]) -> dict[str, int]:
+    counts: dict[str, int] = defaultdict(int)
+    for connection in connections:
+        counts[connection.net_name] += 1
+    return counts
+
+
+def _should_draw_direct_wire(
+    connection: Connection,
+    circuit: Circuit,
+    registry: Registry,
+    placements: dict[str, tuple[float, float]],
+    net_counts: dict[str, int],
+) -> bool:
+    if net_counts[connection.net_name] != 1 or connection.net_name in POWER_NETS:
+        return False
+    left = _placed_pin(connection.from_pin, circuit, registry, placements)
+    right = _placed_pin(connection.to_pin, circuit, registry, placements)
+    return left.direction != right.direction and abs(left.y - right.y) < 0.001
+
+
+def _direct_wire(left: PlacedPin, right: PlacedPin, net_name: str, index: int) -> list[SExpr]:
+    first, second = (left, right) if left.x <= right.x else (right, left)
+    label_x = (first.x + second.x) / 2
+    label_y = first.y
+    label_rotation = 0
+    return [
+        _wire(first.x, first.y, second.x, second.y, net_name, index, "direct"),
+        _label(net_name, label_x, label_y, label_rotation, left.ref),
+    ]
+
+
+def _align_two_component_signal_pins(
+    circuit: Circuit,
+    registry: Registry,
+    placements: dict[str, tuple[float, float]],
+) -> None:
+    source, target = circuit.components
+    desired_target_y: list[float] = []
+    for connection in circuit.connections:
+        if connection.net_name in POWER_NETS:
+            continue
+        if connection.from_pin.component_id == source.id and connection.to_pin.component_id == target.id:
+            source_ref = connection.from_pin
+            target_ref = connection.to_pin
+        elif connection.to_pin.component_id == source.id and connection.from_pin.component_id == target.id:
+            source_ref = connection.to_pin
+            target_ref = connection.from_pin
+        else:
+            continue
+        source_pin = _placed_pin(source_ref, circuit, registry, placements)
+        target_part = registry.parts[target.registry_part_id]
+        target_pin = next(pin for pin in target_part.pins if pin.id == target_ref.normalized_pin_id)
+        target_local_y = _pin_local_y(target_pin, target_part, _symbol_metrics(target_part))
+        desired_target_y.append(source_pin.y + target_local_y)
+    if desired_target_y:
+        x, _old_y = placements[target.id]
+        placements[target.id] = (x, sum(desired_target_y) / len(desired_target_y))
 
 
 def _pin_electrical_type(value: str) -> str:
