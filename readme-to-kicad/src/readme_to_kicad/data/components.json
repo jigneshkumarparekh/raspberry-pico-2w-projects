@@ -1,0 +1,158 @@
+{
+  "schema_version": 1,
+  "parts": {
+    "pico_2w": {
+      "aliases": ["raspberry pi pico 2w", "raspberry pico 2w", "pico 2w", "pico", "pico w"],
+      "reference_prefix": "U",
+      "value": "Raspberry Pi Pico 2W",
+      "symbol_library_id": "ReadmeToKicad:pico_2w",
+      "pins": [
+        {"id": "gp0", "number": "1", "name": "GP0", "aliases": ["gp0", "gpio0", "uart0 tx", "i2c0 sda", "spi0 rx"], "schemes": ["gpio", "label"], "electrical_type": "bidirectional", "side": "left"},
+        {"id": "gp1", "number": "2", "name": "GP1", "aliases": ["gp1", "gpio1", "uart0 rx", "i2c0 scl", "spi0 csn"], "schemes": ["gpio", "label"], "electrical_type": "bidirectional", "side": "left"},
+        {"id": "gnd3", "number": "3", "name": "GND", "aliases": ["gnd", "ground"], "schemes": ["label"], "electrical_type": "power_out", "side": "left"},
+        {"id": "gp2", "number": "4", "name": "GP2", "aliases": ["gp2", "gpio2", "i2c1 sda", "spi0 sck"], "schemes": ["gpio", "label"], "electrical_type": "bidirectional", "side": "left"},
+        {"id": "gp3", "number": "5", "name": "GP3", "aliases": ["gp3", "gpio3", "i2c1 scl", "spi0 tx"], "schemes": ["gpio", "label"], "electrical_type": "bidirectional", "side": "left"},
+        {"id": "gp4", "number": "6", "name": "GP4", "aliases": ["gp4", "gpio4", "uart1 tx", "i2c0 sda", "spi0 rx"], "schemes": ["gpio", "label"], "electrical_type": "bidirectional", "side": "left"},
+        {"id": "gp5", "number": "7", "name": "GP5", "aliases": ["gp5", "gpio5", "uart1 rx", "i2c0 scl", "spi0 csn"], "schemes": ["gpio", "label"], "electrical_type": "bidirectional", "side": "left"},
+        {"id": "gnd8", "number": "8", "name": "GND", "aliases": ["gnd", "ground"], "schemes": ["label"], "electrical_type": "power_out", "side": "left"},
+        {"id": "gp6", "number": "9", "name": "GP6", "aliases": ["gp6", "gpio6", "i2c1 sda", "spi0 sck"], "schemes": ["gpio", "label"], "electrical_type": "bidirectional", "side": "left"},
+        {"id": "gp7", "number": "10", "name": "GP7", "aliases": ["gp7", "gpio7", "i2c1 scl", "spi0 tx"], "schemes": ["gpio", "label"], "electrical_type": "bidirectional", "side": "left"},
+        {"id": "gp8", "number": "11", "name": "GP8", "aliases": ["gp8", "gpio8", "uart1 tx", "i2c0 sda", "spi1 rx"], "schemes": ["gpio", "label"], "electrical_type": "bidirectional", "side": "left"},
+        {"id": "gp9", "number": "12", "name": "GP9", "aliases": ["gp9", "gpio9", "uart1 rx", "i2c0 scl", "spi1 csn"], "schemes": ["gpio", "label"], "electrical_type": "bidirectional", "side": "left"},
+        {"id": "gnd13", "number": "13", "name": "GND", "aliases": ["gnd", "ground"], "schemes": ["label"], "electrical_type": "power_out", "side": "left"},
+        {"id": "gp10", "number": "14", "name": "GP10", "aliases": ["gp10", "gpio10", "i2c1 sda", "spi1 sck"], "schemes": ["gpio", "label"], "electrical_type": "bidirectional", "side": "left"},
+        {"id": "gp11", "number": "15", "name": "GP11", "aliases": ["gp11", "gpio11", "i2c1 scl", "spi1 tx"], "schemes": ["gpio", "label"], "electrical_type": "bidirectional", "side": "left"},
+        {"id": "gp12", "number": "16", "name": "GP12", "aliases": ["gp12", "gpio12", "uart0 tx", "i2c0 sda", "spi1 rx"], "schemes": ["gpio", "label"], "electrical_type": "bidirectional", "side": "left"},
+        {"id": "gp13", "number": "17", "name": "GP13", "aliases": ["gp13", "gpio13", "uart0 rx", "i2c0 scl", "spi1 csn"], "schemes": ["gpio", "label"], "electrical_type": "bidirectional", "side": "left"},
+        {"id": "gnd18", "number": "18", "name": "GND", "aliases": ["gnd", "ground"], "schemes": ["label"], "electrical_type": "power_out", "side": "left"},
+        {"id": "gp14", "number": "19", "name": "GP14", "aliases": ["gp14", "gpio14", "i2c1 sda", "spi1 sck"], "schemes": ["gpio", "label"], "electrical_type": "bidirectional", "side": "left"},
+        {"id": "gp15", "number": "20", "name": "GP15", "aliases": ["gp15", "gpio15", "i2c1 scl", "spi1 tx"], "schemes": ["gpio", "label"], "electrical_type": "bidirectional", "side": "left"},
+        {"id": "gp16", "number": "21", "name": "GP16", "aliases": ["gp16", "gpio16", "uart0 tx", "i2c0 sda", "spi0 rx"], "schemes": ["gpio", "label"], "electrical_type": "bidirectional", "side": "right"},
+        {"id": "gp17", "number": "22", "name": "GP17", "aliases": ["gp17", "gpio17", "uart0 rx", "i2c0 scl", "spi0 csn"], "schemes": ["gpio", "label"], "electrical_type": "bidirectional", "side": "right"},
+        {"id": "gnd23", "number": "23", "name": "GND", "aliases": ["gnd", "ground"], "schemes": ["label"], "electrical_type": "power_out", "side": "right"},
+        {"id": "gp18", "number": "24", "name": "GP18", "aliases": ["gp18", "gpio18", "i2c1 sda", "spi0 sck"], "schemes": ["gpio", "label"], "electrical_type": "bidirectional", "side": "right"},
+        {"id": "gp19", "number": "25", "name": "GP19", "aliases": ["gp19", "gpio19", "i2c1 scl", "spi0 tx"], "schemes": ["gpio", "label"], "electrical_type": "bidirectional", "side": "right"},
+        {"id": "gp20", "number": "26", "name": "GP20", "aliases": ["gp20", "gpio20", "i2c0 sda"], "schemes": ["gpio", "label"], "electrical_type": "bidirectional", "side": "right"},
+        {"id": "gp21", "number": "27", "name": "GP21", "aliases": ["gp21", "gpio21", "i2c0 scl"], "schemes": ["gpio", "label"], "electrical_type": "bidirectional", "side": "right"},
+        {"id": "gnd28", "number": "28", "name": "GND", "aliases": ["gnd", "ground"], "schemes": ["label"], "electrical_type": "power_out", "side": "right"},
+        {"id": "gp22", "number": "29", "name": "GP22", "aliases": ["gp22", "gpio22"], "schemes": ["gpio", "label"], "electrical_type": "bidirectional", "side": "right"},
+        {"id": "run", "number": "30", "name": "RUN", "aliases": ["run", "enable", "reset"], "schemes": ["label"], "electrical_type": "input", "side": "right"},
+        {"id": "gp26", "number": "31", "name": "GP26", "aliases": ["gp26", "gpio26", "adc0", "i2c1 sda"], "schemes": ["gpio", "label"], "electrical_type": "bidirectional", "side": "right"},
+        {"id": "gp27", "number": "32", "name": "GP27", "aliases": ["gp27", "gpio27", "adc1", "i2c1 scl"], "schemes": ["gpio", "label"], "electrical_type": "bidirectional", "side": "right"},
+        {"id": "gnd33", "number": "33", "name": "GND", "aliases": ["gnd", "ground", "agnd"], "schemes": ["label"], "electrical_type": "power_out", "side": "right"},
+        {"id": "gp28", "number": "34", "name": "GP28", "aliases": ["gp28", "gpio28", "adc2"], "schemes": ["gpio", "label"], "electrical_type": "bidirectional", "side": "right"},
+        {"id": "adc_vref", "number": "35", "name": "ADC_VREF", "aliases": ["adc_vref", "adc vref", "vref"], "schemes": ["label"], "electrical_type": "power_in", "side": "right"},
+        {"id": "3v3", "number": "36", "name": "3V3(OUT)", "aliases": ["3v3", "3.3v", "+3v3", "3v3 out", "3v3(out)"], "schemes": ["label"], "electrical_type": "power_out", "side": "right"},
+        {"id": "3v3_en", "number": "37", "name": "3V3_EN", "aliases": ["3v3_en", "3v3 en", "3v3 enable"], "schemes": ["label"], "electrical_type": "input", "side": "right"},
+        {"id": "gnd38", "number": "38", "name": "GND", "aliases": ["gnd", "ground"], "schemes": ["label"], "electrical_type": "power_out", "side": "right"},
+        {"id": "vsys", "number": "39", "name": "VSYS", "aliases": ["vsys"], "schemes": ["label"], "electrical_type": "power_in", "side": "right"},
+        {"id": "vbus", "number": "40", "name": "VBUS", "aliases": ["vbus", "5v"], "schemes": ["label"], "electrical_type": "power_in", "side": "right"}
+      ]
+    },
+    "hc_sr04": {
+      "aliases": ["hc-sr04", "hc sr04", "hcsr04", "ultrasonic sensor", "ultrasonic sound"],
+      "reference_prefix": "U",
+      "value": "HC-SR04",
+      "symbol_library_id": "ReadmeToKicad:hc_sr04",
+      "pins": [
+        {"id": "vcc", "number": "1", "name": "VCC", "aliases": ["vcc", "power"], "schemes": ["label"], "electrical_type": "power_in", "side": "left"},
+        {"id": "trig", "number": "2", "name": "TRIG", "aliases": ["trig", "trigger"], "schemes": ["signal", "label"], "electrical_type": "input", "side": "left"},
+        {"id": "echo", "number": "3", "name": "ECHO", "aliases": ["echo"], "schemes": ["signal", "label"], "electrical_type": "output", "side": "left"},
+        {"id": "gnd", "number": "4", "name": "GND", "aliases": ["gnd", "ground"], "schemes": ["label"], "electrical_type": "power_in", "side": "left"}
+      ]
+    },
+    "tb6612fng": {
+      "aliases": ["tb6612fng", "tb6612", "motor driver", "dual h-bridge", "h-bridge"],
+      "reference_prefix": "U",
+      "value": "TB6612FNG",
+      "symbol_library_id": "ReadmeToKicad:tb6612fng",
+      "pins": [
+        {"id": "vcc", "number": "1", "name": "VCC", "aliases": ["vcc", "logic", "logic power"], "schemes": ["label"], "electrical_type": "power_in", "side": "left"},
+        {"id": "vm", "number": "2", "name": "VM", "aliases": ["vm", "motor power", "battery"], "schemes": ["label"], "electrical_type": "power_in", "side": "left"},
+        {"id": "gnd", "number": "3", "name": "GND", "aliases": ["gnd", "ground"], "schemes": ["label"], "electrical_type": "power_in", "side": "left"},
+        {"id": "stby", "number": "4", "name": "STBY", "aliases": ["stby", "standby"], "schemes": ["signal", "label"], "electrical_type": "input", "side": "left"},
+        {"id": "pwma", "number": "5", "name": "PWMA", "aliases": ["pwma", "left_pwm"], "schemes": ["signal", "label"], "electrical_type": "input", "side": "left"},
+        {"id": "ain1", "number": "6", "name": "AIN1", "aliases": ["ain1", "left_in1"], "schemes": ["signal", "label"], "electrical_type": "input", "side": "left"},
+        {"id": "ain2", "number": "7", "name": "AIN2", "aliases": ["ain2", "left_in2"], "schemes": ["signal", "label"], "electrical_type": "input", "side": "left"},
+        {"id": "ao1", "number": "8", "name": "AO1", "aliases": ["ao1", "a01", "aout1", "left_out1"], "schemes": ["signal", "label"], "electrical_type": "output", "side": "right"},
+        {"id": "ao2", "number": "9", "name": "AO2", "aliases": ["ao2", "a02", "aout2", "left_out2"], "schemes": ["signal", "label"], "electrical_type": "output", "side": "right"},
+        {"id": "pwmb", "number": "10", "name": "PWMB", "aliases": ["pwmb", "right_pwm"], "schemes": ["signal", "label"], "electrical_type": "input", "side": "left"},
+        {"id": "bin1", "number": "11", "name": "BIN1", "aliases": ["bin1", "right_in1"], "schemes": ["signal", "label"], "electrical_type": "input", "side": "left"},
+        {"id": "bin2", "number": "12", "name": "BIN2", "aliases": ["bin2", "right_in2"], "schemes": ["signal", "label"], "electrical_type": "input", "side": "left"},
+        {"id": "bo1", "number": "13", "name": "BO1", "aliases": ["bo1", "b01", "bout1", "right_out1"], "schemes": ["signal", "label"], "electrical_type": "output", "side": "right"},
+        {"id": "bo2", "number": "14", "name": "BO2", "aliases": ["bo2", "b02", "bout2", "right_out2"], "schemes": ["signal", "label"], "electrical_type": "output", "side": "right"}
+      ]
+    },
+    "left_dc_motor": {
+      "aliases": ["left dc motor", "left motor", "motor a"],
+      "reference_prefix": "M",
+      "value": "Left DC Motor",
+      "symbol_library_id": "ReadmeToKicad:left_dc_motor",
+      "pins": [
+        {"id": "plus", "number": "1", "name": "+", "aliases": ["+", "positive", "1"], "schemes": ["label"], "electrical_type": "passive", "side": "left"},
+        {"id": "minus", "number": "2", "name": "-", "aliases": ["-", "negative", "2"], "schemes": ["label"], "electrical_type": "passive", "side": "left"}
+      ]
+    },
+    "right_dc_motor": {
+      "aliases": ["right dc motor", "right motor", "motor b"],
+      "reference_prefix": "M",
+      "value": "Right DC Motor",
+      "symbol_library_id": "ReadmeToKicad:right_dc_motor",
+      "pins": [
+        {"id": "plus", "number": "1", "name": "+", "aliases": ["+", "positive", "1"], "schemes": ["label"], "electrical_type": "passive", "side": "left"},
+        {"id": "minus", "number": "2", "name": "-", "aliases": ["-", "negative", "2"], "schemes": ["label"], "electrical_type": "passive", "side": "left"}
+      ]
+    },
+    "battery_pack": {
+      "aliases": ["battery pack", "battery", "motor battery"],
+      "reference_prefix": "BT",
+      "value": "Battery Pack",
+      "symbol_library_id": "ReadmeToKicad:battery_pack",
+      "pins": [
+        {"id": "plus", "number": "1", "name": "+", "aliases": ["+", "positive", "vm", "battery positive"], "schemes": ["label"], "electrical_type": "power_out", "side": "right"},
+        {"id": "minus", "number": "2", "name": "-", "aliases": ["-", "negative", "gnd", "battery negative"], "schemes": ["label"], "electrical_type": "power_out", "side": "right"}
+      ]
+    },
+    "led": {
+      "aliases": ["led", "light emitting diode"],
+      "reference_prefix": "D",
+      "value": "LED",
+      "symbol_library_id": "ReadmeToKicad:led",
+      "pins": [
+        {"id": "a", "number": "1", "name": "A", "aliases": ["a", "anode", "+"], "schemes": ["label"], "electrical_type": "passive", "side": "left"},
+        {"id": "k", "number": "2", "name": "K", "aliases": ["k", "cathode", "-"], "schemes": ["label"], "electrical_type": "passive", "side": "right"}
+      ]
+    },
+    "resistor": {
+      "aliases": ["resistor", "res", "220 ohm resistor", "220r"],
+      "reference_prefix": "R",
+      "value": "R",
+      "symbol_library_id": "ReadmeToKicad:resistor",
+      "pins": [
+        {"id": "1", "number": "1", "name": "1", "aliases": ["1", "pin1"], "schemes": ["physical", "label"], "electrical_type": "passive", "side": "left"},
+        {"id": "2", "number": "2", "name": "2", "aliases": ["2", "pin2"], "schemes": ["physical", "label"], "electrical_type": "passive", "side": "right"}
+      ]
+    },
+    "buzzer": {
+      "aliases": ["buzzer", "piezo buzzer"],
+      "reference_prefix": "BZ",
+      "value": "Buzzer",
+      "symbol_library_id": "ReadmeToKicad:buzzer",
+      "pins": [
+        {"id": "plus", "number": "1", "name": "+", "aliases": ["+", "positive", "vcc"], "schemes": ["label"], "electrical_type": "passive", "side": "left"},
+        {"id": "minus", "number": "2", "name": "-", "aliases": ["-", "negative", "gnd"], "schemes": ["label"], "electrical_type": "passive", "side": "right"}
+      ]
+    },
+    "servo": {
+      "aliases": ["servo", "servo motor", "sg90"],
+      "reference_prefix": "M",
+      "value": "Servo",
+      "symbol_library_id": "ReadmeToKicad:servo",
+      "pins": [
+        {"id": "signal", "number": "1", "name": "SIGNAL", "aliases": ["signal", "sig", "pwm"], "schemes": ["signal", "label"], "electrical_type": "input", "side": "left"},
+        {"id": "vcc", "number": "2", "name": "VCC", "aliases": ["vcc", "5v", "power"], "schemes": ["label"], "electrical_type": "power_in", "side": "left"},
+        {"id": "gnd", "number": "3", "name": "GND", "aliases": ["gnd", "ground"], "schemes": ["label"], "electrical_type": "power_in", "side": "left"}
+      ]
+    }
+  }
+}

@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+.history/
+
+*.kicad_sch
+*.kicad_pro
+*.kicad_pcb
+*.kicad_prl
+*.net
+*erc*.json
+*.lck
+~*.lck
