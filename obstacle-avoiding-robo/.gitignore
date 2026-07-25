@@ -1,6 +1,14 @@
 # KiCad local/session files
+.DS_Store
+*.lck
 *.kicad_prl
 .history/
 
 # Manual KiCad backup snapshots
 *_pre_*.kicad_pcb
+
+# Keep only the reviewed fabrication package and upload archive.
+kicad/obstacle_avoiding_robo/gerbers/*
+!kicad/obstacle_avoiding_robo/gerbers/manufacturing/
+!kicad/obstacle_avoiding_robo/gerbers/manufacturing/**
+!kicad/obstacle_avoiding_robo/gerbers/*-jlcpcb.zip

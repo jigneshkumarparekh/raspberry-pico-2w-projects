@@ -1,0 +1,6 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "obstacle_avoiding_robo") (type "KiCad") (uri "${KIPRJMOD}/obstacle_avoiding_robo.kicad_sym") (options "") (descr "Local module symbols for obstacle avoiding robot"))
+  (lib (name "Driver_Motor") (type "KiCad") (uri "${KICAD10_SYMBOL_DIR}/Driver_Motor.kicad_sym") (options "") (descr "Integrated motor driver and controller ICs"))
+  (lib (name "Motor") (type "KiCad") (uri "${KICAD10_SYMBOL_DIR}/Motor.kicad_sym") (options "") (descr "Motor symbols"))
+)
