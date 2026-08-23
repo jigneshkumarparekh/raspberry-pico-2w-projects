@@ -204,7 +204,22 @@ def _resolve_pin(part: RegistryPart, raw_pin: str):
         text = text.replace("gpio ", "gpio", 1)
     if text.startswith("gp "):
         text = text.replace("gp ", "gp", 1)
-    for pin, _alias, confidence in Registry({"part": part}).find_pin_candidates(part, text):
+    candidates = Registry({"part": part}).find_pin_candidates(part, text)
+    if candidates:
+        shared_nets = {pin.shared_net for pin, _alias, _confidence in candidates}
+        if len(shared_nets) == 1 and None not in shared_nets:
+            # Multiple physical pads can intentionally expose one logical net
+            # (for example the three GND pads on a breakout). Resolve the
+            # logical reference to the first physical pad in stable side order.
+            candidates = sorted(
+                candidates,
+                key=lambda item: (
+                    item[0].side,
+                    item[0].side_order if item[0].side_order is not None else 10**9,
+                    item[0].id,
+                ),
+            )[:1]
+    for pin, _alias, confidence in candidates:
         scheme = _scheme_for(text, pin.schemes)
         return pin, scheme, confidence
     return None

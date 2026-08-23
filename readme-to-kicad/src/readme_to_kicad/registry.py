@@ -57,6 +57,8 @@ class Registry:
                     schemes=list(pin.get("schemes", ["label"])),
                     electrical_type=str(pin.get("electrical_type", "passive")),
                     side=pin.get("side", "right"),
+                    side_order=(int(pin["side_order"]) if "side_order" in pin else None),
+                    shared_net=(str(pin["shared_net"]) if pin.get("shared_net") is not None else None),
                 )
                 for pin in raw.get("pins", [])
             ]

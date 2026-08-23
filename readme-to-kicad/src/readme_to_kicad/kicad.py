@@ -199,7 +199,7 @@ def _placed_symbol(
         _property("Value", part.value, x, y + 12.7, 0),
     ]
     for pin in part.pins:
-        symbol.append([atom("pin"), pin.number, [atom("uuid"), _stable_uuid(component.id, "pin", pin.number)]])
+        symbol.append([atom("pin"), pin.number, [atom("uuid"), _stable_uuid(component.id, "pin", pin.id)]])
     symbol.append(
         [
             atom("instances"),
@@ -305,8 +305,8 @@ def _pin_y(index: int, total: int) -> float:
 
 
 def _symbol_metrics(part: RegistryPart) -> SymbolMetrics:
-    left_pins = tuple(pin for pin in part.pins if pin.side == "left")
-    right_pins = tuple(pin for pin in part.pins if pin.side != "left")
+    left_pins = _ordered_side_pins(part, "left")
+    right_pins = _ordered_side_pins(part, "right")
     max_side_count = max(len(left_pins), len(right_pins), 1)
     height = max(MIN_SYMBOL_HEIGHT, (max_side_count - 1) * PIN_PITCH + SYMBOL_VERTICAL_PADDING)
     return SymbolMetrics(SYMBOL_WIDTH, height, left_pins, right_pins)
@@ -315,9 +315,26 @@ def _symbol_metrics(part: RegistryPart) -> SymbolMetrics:
 def _pin_local_y(pin: RegistryPin, part: RegistryPart, metrics: SymbolMetrics) -> float:
     side_pins = metrics.left_pins if pin.side == "left" else metrics.right_pins
     index = side_pins.index(pin)
-    if pin.side != "left":
+    if pin.side_order is None and pin.side != "left":
         index = len(side_pins) - 1 - index
     return _pin_y(index, len(side_pins))
+
+
+def _ordered_side_pins(part: RegistryPart, side: str) -> tuple[RegistryPin, ...]:
+    pins = [pin for pin in part.pins if pin.side == side]
+    if any(pin.side_order is not None for pin in pins):
+        # Explicit ordering is top-to-bottom. A part may mix ordered and legacy
+        # pins, so declaration order remains the deterministic tie-breaker.
+        ordered = sorted(
+            enumerate(pins),
+            key=lambda item: (
+                item[1].side_order is None,
+                item[1].side_order if item[1].side_order is not None else 0,
+                item[0],
+            ),
+        )
+        return tuple(pin for _index, pin in ordered)
+    return tuple(pins)
 
 
 def _placement_column(component: ComponentInstance) -> str:

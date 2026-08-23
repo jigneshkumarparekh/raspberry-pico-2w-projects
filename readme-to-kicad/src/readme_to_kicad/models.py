@@ -33,6 +33,8 @@ class RegistryPin:
     schemes: list[PinScheme]
     electrical_type: str
     side: Literal["left", "right"] = "right"
+    side_order: int | None = None
+    shared_net: str | None = None
 
 
 @dataclass(frozen=True)

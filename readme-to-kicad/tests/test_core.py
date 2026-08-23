@@ -82,7 +82,7 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(circuit.connections[0].net_name, "TRIG")
 
     def test_obstacle_robo_example_resolves(self) -> None:
-        markdown = Path("examples/test-readme.md").read_text(encoding="utf-8")
+        markdown = Path("examples/robo-car-test-circuit.md").read_text(encoding="utf-8")
         circuit = resolve(parse_readme(markdown), Registry.bundled(), "obstacle-robo", strict=True)
 
         self.assertFalse(circuit.diagnostics)
@@ -134,6 +134,55 @@ class CoreTests(unittest.TestCase):
 
         self.assertLess(gp0_y, gp15_y)
         self.assertLess(vbus_y, gp16_y)
+
+    def test_tb6612fng_registry_matches_breakout_back_view(self) -> None:
+        tb = Registry.bundled().parts["tb6612fng"]
+        self.assertEqual(len(tb.pins), 16)
+        self.assertEqual(
+            [pin.id for pin in tb.pins if pin.side == "left"],
+            ["pwma", "ain2", "ain1", "stby", "bin1", "bin2", "pwmb", "gnd_left"],
+        )
+        self.assertEqual(
+            [pin.id for pin in tb.pins if pin.side == "right"],
+            ["vm", "vcc", "gnd_right_upper", "ao1", "ao2", "bo2", "bo1", "gnd_right_lower"],
+        )
+        self.assertEqual([pin.side_order for pin in tb.pins if pin.side == "left"], list(range(8)))
+        self.assertEqual([pin.side_order for pin in tb.pins if pin.side == "right"], list(range(8)))
+        self.assertEqual({pin.name for pin in tb.pins if pin.id in {"ao1", "ao2", "bo1", "bo2"}}, {"AO1", "AO2", "BO1", "BO2"})
+        self.assertEqual({pin.shared_net for pin in tb.pins if pin.name == "GND"}, {"GND"})
+
+    def test_tb6612fng_pin_coordinates_follow_explicit_side_order(self) -> None:
+        registry = Registry.bundled()
+        tb = registry.parts["tb6612fng"]
+        metrics = _symbol_metrics(tb)
+        pins = {pin.id: pin for pin in tb.pins}
+        self.assertEqual(
+            [pin.id for pin in metrics.left_pins],
+            ["pwma", "ain2", "ain1", "stby", "bin1", "bin2", "pwmb", "gnd_left"],
+        )
+        self.assertEqual(
+            [pin.id for pin in metrics.right_pins],
+            ["vm", "vcc", "gnd_right_upper", "ao1", "ao2", "bo2", "bo1", "gnd_right_lower"],
+        )
+        self.assertGreater(_pin_local_y(pins["pwma"], tb, metrics), _pin_local_y(pins["gnd_left"], tb, metrics))
+        self.assertGreater(_pin_local_y(pins["vm"], tb, metrics), _pin_local_y(pins["gnd_right_lower"], tb, metrics))
+
+    def test_tb6612fng_duplicate_gnds_resolve_to_one_physical_pad(self) -> None:
+        registry = Registry.bundled()
+        markdown = """# GND aliases
+
+## Components
+
+- TB6612FNG motor driver
+
+## Connections
+
+- TB6612FNG GND -> TB6612FNG VCC
+"""
+        circuit = resolve(parse_readme(markdown), registry, "gnd-aliases", strict=True)
+        self.assertFalse(circuit.diagnostics)
+        self.assertEqual(circuit.connections[0].from_pin.normalized_pin_id, "gnd_left")
+        self.assertEqual(circuit.connections[0].net_name, "GND")
 
     def test_conflicting_connection_blocks_in_strict_mode(self) -> None:
         markdown = """# Conflict
@@ -190,7 +239,7 @@ class CoreTests(unittest.TestCase):
         self.assertLess(schematic.count("(wire"), label_only_wire_count)
 
     def test_obstacle_robo_schematic_uses_hybrid_routing(self) -> None:
-        markdown = Path("examples/test-readme.md").read_text(encoding="utf-8")
+        markdown = Path("examples/robo-car-test-circuit.md").read_text(encoding="utf-8")
         circuit = resolve(parse_readme(markdown), Registry.bundled(), "obstacle-robo", strict=True)
 
         schematic = generate_schematic(circuit, Registry.bundled())
